@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>44coin Strategy Tool</title>
+    <style>
+        :root {
+            --heads: #3498db;
+            --tails: #e74c3c;
+            --correct: #27ae60;
+            --wrong: #cc0000;
+            --text: #2c3e50;
+            --bg: #f9f9f9;
+            --border: #ddd;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: var(--text);
+        }
+        h1, h2, h3 {
+            color: var(--text);
+        }
+        .container {
+            background-color: var(--bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--heads);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.reset {
+            background-color: var(--tails);
+        }
+        button.reset:hover {
+            background-color: #c0392b;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #e8f4fc;
+            border-left: 4px solid var(--heads);
+        }
+        .knight-reasoning {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .correct {
+            color: var(--correct);
+            font-weight: bold;
+        }
+        .wrong {
+            color: var(--wrong);
+            font-weight: bold;
+        }
+        .coin-heads {
+            color: var(--heads);
+        }
+        .coin-tails {
+            color: var(--tails);
+        }
+        .active-group {
+            background-color: #fffacd;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>44coin Strategy Tool</h1>
+    <p>The Four Knights' Coin-Guessing Strategy (3 Correct & 1 Wrong Guess Every Time)</p>
+
+    <div class="container">
+        <h2>Strategy Table</h2>
+        <table id="group-table">
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th>A's Coin</th>
+                    <th>B's Coin</th>
+                    <th>Wrong Knight</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-group="1">
+                    <td>1</td>
+                    <td class="coin-heads">0 (Heads)</td>
+                    <td class="coin-heads">0 (Heads)</td>
+                    <td>A</td>
+                </tr>
+                <tr data-group="2">
+                    <td>2</td>
+                    <td class="coin-heads">0 (Heads)</td>
+                    <td class="coin-tails">1 (Tails)</td>
+                    <td>B</td>
+                </tr>
+                <tr data-group="3">
+                    <td>3</td>
+                    <td class="coin-tails">1 (Tails)</td>
+                    <td class="coin-heads">0 (Heads)</td>
+                    <td>C</td>
+                </tr>
+                <tr data-group="4">
+                    <td>4</td>
+                    <td class="coin-tails">1 (Tails)</td>
+                    <td class="coin-tails">1 (Tails)</td>
+                    <td>D</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Key Rule:</strong> Wrong knight flips their actual coin value when guessing. Others say their actual coin value.</p>
+    </div>
+
+    <div class="container">
+        <h2>Test Case Analyzer</h2>
+        <div class="input-group">
+            <label for="a-coin">A's Coin:</label>
+            <select id="a-coin" aria-label="Select A's coin value">
+                <option value="0">0 (Heads)</option>
+                <option value="1">1 (Tails)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="b-coin">B's Coin:</label>
+            <select id="b-coin" aria-label="Select B's coin value">
+                <option value="0">0 (Heads)</option>
+                <option value="1">1 (Tails)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="c-coin">C's Coin:</label>
+            <select id="c-coin" aria-label="Select C's coin value">
+                <option value="0">0 (Heads)</option>
+                <option value="1">1 (Tails)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="d-coin">D's Coin:</label>
+            <select id="d-coin" aria-label="Select D's coin value">
+                <option value="0">0 (Heads)</option>
+                <option value="1">1 (Tails)</option>
+            </select>
+        </div>
+        <button id="analyze-btn" aria-label="Analyze the current coin configuration">Analyze</button>
+        <button id="reset-btn" class="reset" aria-label="Reset all selections">Reset</button>
+
+        <div id="result" class="result" style="display: none;">
+            <h3>Analysis Results</h3>
+            <p>Actual coins: 
+                A=<span id="actual-a" class="coin-heads"></span>, 
+                B=<span id="actual-b" class="coin-heads"></span>, 
+                C=<span id="actual-c" class="coin-heads"></span>, 
+                D=<span id="actual-d" class="coin-heads"></span>
+            </p>
+            <p>Determined Group: <span id="group"></span></p>
+            <p>Wrong Knight: <span id="wrong-knight"></span></p>
+            
+            <h4>Knights' Reasoning:</h4>
+            <div id="knight-reasoning"></div>
+            
+            <h4>Guesses:</h4>
+            <ul id="guesses"></ul>
+            
+            <h4>Result:</h4>
+            <p id="final-result"></p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>How It Works</h2>
+        <p>This strategy guarantees exactly 3 correct guesses and 1 wrong guess every time by:</p>
+        <ol>
+            <li>Using a pre-arranged group system based on A and B's coins</li>
+            <li>Assigning one knight per group to be the "wrong" guesser</li>
+            <li>Having each knight deduce the correct group based on visible coins</li>
+            <li>Eliminating impossible groups through logical contradiction</li>
+        </ol>
+        <p>Knights C and D can immediately determine the group (and their role) since they see both A and B's coins.</p>
+        <p>Knights A and B must perform elimination to determine which of two possible groups they're in.</p>
+    </div>
+
+    <script>
+        // Constants
+        const HEADS = '0';
+        const TAILS = '1';
+        
+        // Group configuration
+        const GROUPS = [
+            { id: 1, a: HEADS, b: HEADS, wrongKnight: 'A' },
+            { id: 2, a: HEADS, b: TAILS, wrongKnight: 'B' },
+            { id: 3, a: TAILS, b: HEADS, wrongKnight: 'C' },
+            { id: 4, a: TAILS, b: TAILS, wrongKnight: 'D' }
+        ];
+
+        // DOM elements
+        const aCoinSelect = document.getElementById('a-coin');
+        const bCoinSelect = document.getElementById('b-coin');
+        const cCoinSelect = document.getElementById('c-coin');
+        const dCoinSelect = document.getElementById('d-coin');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const resultDiv = document.getElementById('result');
+        const groupTable = document.getElementById('group-table');
+        const groupRows = groupTable.querySelectorAll('tbody tr');
+
+        // Event listeners
+        analyzeBtn.addEventListener('click', analyzeTestCase);
+        resetBtn.addEventListener('click', resetForm);
+
+        // Main analysis function
+        function analyzeTestCase() {
+            try {
+                // Get input values
+                const aCoin = aCoinSelect.value;
+                const bCoin = bCoinSelect.value;
+                const cCoin = cCoinSelect.value;
+                const dCoin = dCoinSelect.value;
+                
+                // Determine the group
+                const group = GROUPS.find(g => g.a === aCoin && g.b === bCoin);
+                if (!group) throw new Error('Invalid group configuration');
+                
+                // Highlight active group in table
+                groupRows.forEach(row => {
+                    row.classList.remove('active-group');
+                    if (parseInt(row.dataset.group) === group.id) {
+                        row.classList.add('active-group');
+                    }
+                });
+                
+                // Update coin display classes
+                updateCoinDisplay('actual-a', aCoin);
+                updateCoinDisplay('actual-b', bCoin);
+                updateCoinDisplay('actual-c', cCoin);
+                updateCoinDisplay('actual-d', dCoin);
+                
+                // Display group info
+                document.getElementById('group').textContent = group.id;
+                document.getElementById('wrong-knight').textContent = group.wrongKnight;
+                
+                // Generate reasoning for each knight
+                generateReasoning(aCoin, bCoin, cCoin, dCoin, group);
+                
+                // Show results
+                resultDiv.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('An error occurred during analysis. Please check your inputs.');
+            }
+        }
+
+        // Generate reasoning for all knights
+        function generateReasoning(a, b, c, d, group) {
+            const reasoningDiv = document.getElementById('knight-reasoning');
+            reasoningDiv.innerHTML = '';
+            
+            const knights = [
+                { name: 'A', coin: a, sees: { B: b, C: c, D: d } },
+                { name: 'B', coin: b, sees: { A: a, C: c, D: d } },
+                { name: 'C', coin: c, sees: { A: a, B: b, D: d } },
+                { name: 'D', coin: d, sees: { A: a, B: b, C: c } }
+            ];
+            
+            knights.forEach(knight => {
+                const isWrong = knight.name === group.wrongKnight;
+                const guess = isWrong ? (knight.coin === HEADS ? TAILS : HEADS) : knight.coin;
+                
+                const reasoning = document.createElement('div');
+                reasoning.className = 'knight-reasoning';
+                reasoning.innerHTML = `
+                    <h5>Knight ${knight.name}'s Reasoning:</h5>
+                    <p>Sees: 
+                        ${knight.name !== 'A' ? `A=${knight.sees.A}` : ''}
+                        ${knight.name !== 'B' ? `, B=${knight.sees.B}` : ''}
+                        ${knight.name !== 'C' ? `, C=${knight.sees.C}` : ''}
+                        ${knight.name !== 'D' ? `, D=${knight.sees.D}` : ''}
+                    </p>
+                    ${getGroupDeductionText(knight, group)}
+                    <p>Action: ${getActionText(knight, group, guess)}</p>
+                `;
+                reasoningDiv.appendChild(reasoning);
+            });
+            
+            // Update guesses
+            const guessesList = document.getElementById('guesses');
+            guessesList.innerHTML = '';
+            
+            knights.forEach(knight => {
+                const isWrong = knight.name === group.wrongKnight;
+                const guess = isWrong ? (knight.coin === HEADS ? TAILS : HEADS) : knight.coin;
+                const isCorrect = guess === knight.coin;
+                
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${knight.name} guesses: <span class="${guess === HEADS ? 'coin-heads' : 'coin-tails'}">${guess}</span>
+                    (actual: <span class="${knight.coin === HEADS ? 'coin-heads' : 'coin-tails'}">${knight.coin}</span>)
+                    <span class="${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? '✓ Correct' : '✗ Wrong'}</span>
+                `;
+                guessesList.appendChild(li);
+            });
+            
+            // Update final result
+            const correctCount = knights.filter(knight => {
+                const isWrong = knight.name === group.wrongKnight;
+                const guess = isWrong ? (knight.coin === HEADS ? TAILS : HEADS) : knight.coin;
+                return guess === knight.coin;
+            }).length;
+            
+            document.getElementById('final-result').innerHTML = `
+                <strong>${correctCount} correct guesses and ${4 - correctCount} wrong guesses</strong><br>
+                ${correctCount === 3 ? '✔ Strategy worked as expected!' : '✖ Unexpected result - check your inputs'}
+            `;
+        }
+
+        // Helper functions
+        function getGroupDeductionText(knight, group) {
+            if (['C', 'D'].includes(knight.name)) {
+                return `<p>Immediately knows group is ${group.id} (A=${group.a}, B=${group.b})</p>
+                        <p>Knows ${knight.name === group.wrongKnight ? 'I am the wrong knight' : 'I should say my actual value'}</p>`;
+            } else {
+                const possibleGroups = GROUPS.filter(g => 
+                    (knight.name === 'A' ? g.a === knight.coin : g.b === knight.coin)
+                    .map(g => g.id).join(' or ');
+                
+                return `<p>Possible groups: ${possibleGroups}</p>
+                        <p>Conclusion: Group ${group.id} (${group.wrongKnight} is wrong)</p>`;
+            }
+        }
+
+        function getActionText(knight, group, guess) {
+            const isWrong = knight.name === group.wrongKnight;
+            const action = isWrong 
+                ? `Says ${guess} (flips actual value ${knight.coin})`
+                : `Says ${guess} (actual value)`;
+            return action;
+        }
+
+        function updateCoinDisplay(elementId, value) {
+            const element = document.getElementById(elementId);
+            element.textContent = value;
+            element.className = value === HEADS ? 'coin-heads' : 'coin-tails';
+        }
+
+        function resetForm() {
+            aCoinSelect.value = HEADS;
+            bCoinSelect.value = HEADS;
+            cCoinSelect.value = HEADS;
+            dCoinSelect.value = HEADS;
+            resultDiv.style.display = 'none';
+            groupRows.forEach(row => row.classList.remove('active-group'));
+        }
+    </script>
+</body>
+</html>
