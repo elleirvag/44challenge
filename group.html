@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Four Knights Strategy Trainer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 1em;
+    }
+    .container {
+      max-width: 400px;
+      background: #fff;
+      padding: 1em;
+      margin: 0 auto;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.2em;
+      margin-bottom: 1em;
+    }
+    select, button {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.5em;
+      font-size: 1em;
+    }
+    .question {
+      margin-bottom: 1em;
+    }
+    .result {
+      background: #e6ffe6;
+      border: 1px solid #27ae60;
+      padding: 1em;
+      border-radius: 6px;
+      margin-top: 1em;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Four Knights Strategy Trainer</h1>
+
+  <div class="question">
+    <label>Which Knight are you?</label>
+    <select id="knight">
+      <option value="">-- Select --</option>
+      <option value="A">Knight A</option>
+      <option value="B">Knight B</option>
+      <option value="C">Knight C</option>
+      <option value="D">Knight D</option>
+    </select>
+  </div>
+
+  <div class="question" id="coin-A" style="display:none">
+    <label>What is A's coin?</label>
+    <select>
+      <option value="">-- Select --</option>
+      <option value="0">0</option>
+      <option value="1">1</option>
+    </select>
+  </div>
+
+  <div class="question" id="coin-B" style="display:none">
+    <label>What is B's coin?</label>
+    <select>
+      <option value="">-- Select --</option>
+      <option value="0">0</option>
+      <option value="1">1</option>
+    </select>
+  </div>
+
+  <!-- A/B Question Flow -->
+  <div class="question" id="step1" style="display:none">
+    <label id="step1-label"></label>
+    <select id="step1-input">
+      <option value="">-- Select --</option>
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </div>
+
+  <div class="question" id="step2" style="display:none">
+    <label id="step2-label"></label>
+    <select id="step2-input">
+      <option value="">-- Select --</option>
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </div>
+
+  <!-- C/D Direct Flow -->
+  <div class="question" id="cd-select" style="display:none">
+    <label>What are A and B's coins?</label>
+    <select id="group-select">
+      <option value="">-- Select A & B --</option>
+      <option value="00">A=0, B=0</option>
+      <option value="01">A=0, B=1</option>
+      <option value="10">A=1, B=0</option>
+      <option value="11">A=1, B=1</option>
+    </select>
+  </div>
+
+  <div id="result" class="result hidden"></div>
+</div>
+
+<script>
+  const knightSelect = document.getElementById('knight');
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const step1Label = document.getElementById('step1-label');
+  const step2Label = document.getElementById('step2-label');
+  const step1Input = document.getElementById('step1-input');
+  const step2Input = document.getElementById('step2-input');
+  const groupSelect = document.getElementById('group-select');
+  const resultDiv = document.getElementById('result');
+  const cdSelectDiv = document.getElementById('cd-select');
+
+  knightSelect.addEventListener('change', () => {
+    resetUI();
+    const knight = knightSelect.value;
+    if (knight === "A") {
+      showStep1("Is B's coin 0?");
+    } else if (knight === "B") {
+      showStep1("Is A's coin 0?");
+    } else if (knight === "C" || knight === "D") {
+      cdSelectDiv.style.display = 'block';
+    }
+  });
+
+  step1Input.addEventListener('change', () => {
+    const knight = knightSelect.value;
+    const val = step1Input.value;
+    if (knight === "A") {
+      step2Label.textContent = val === "yes" ? "Does C=1 and D=0?" : "Does C=0 and D=1?";
+    } else {
+      step2Label.textContent = val === "yes" ? "Does C=1 and D=0?" : "Does C=0 and D=0?";
+    }
+    step2.style.display = 'block';
+    resultDiv.classList.add('hidden');
+  });
+
+  step2Input.addEventListener('change', () => {
+    const knight = knightSelect.value;
+    const a1 = step1Input.value;
+    const a2 = step2Input.value;
+    let group = "", wrong = "";
+
+    if (knight === "A") {
+      if (a1 === "yes" && a2 === "yes") { group = "3"; wrong = "C"; }
+      else if (a1 === "yes" && a2 === "no") { group = "1"; wrong = "A"; }
+      else if (a1 === "no" && a2 === "yes") { group = "2"; wrong = "B"; }
+      else { group = "4"; wrong = "D"; }
+    } else if (knight === "B") {
+      if (a1 === "yes" && a2 === "yes") { group = "1"; wrong = "A"; }
+      else if (a1 === "yes" && a2 === "no") { group = "2"; wrong = "B"; }
+      else if (a1 === "no" && a2 === "yes") { group = "3"; wrong = "C"; }
+      else { group = "4"; wrong = "D"; }
+    }
+
+    const isWrong = knight === wrong;
+    showResult(group, wrong, isWrong);
+  });
+
+  groupSelect.addEventListener('change', () => {
+    const knight = knightSelect.value;
+    const val = groupSelect.value;
+    const groupMap = {
+      "00": { group: "1", wrong: "A" },
+      "01": { group: "2", wrong: "B" },
+      "10": { group: "3", wrong: "C" },
+      "11": { group: "4", wrong: "D" }
+    };
+    const { group, wrong } = groupMap[val] || {};
+    const isWrong = knight === wrong;
+    if (group) showResult(group, wrong, isWrong);
+  });
+
+  function showStep1(text) {
+    step1Label.textContent = text;
+    step1.style.display = 'block';
+  }
+
+  function showResult(group, wrongKnight, isWrong) {
+    resultDiv.innerHTML = `
+      <strong>Group ${group}</strong><br>
+      Wrong knight: ${wrongKnight}<br>
+      ${isWrong
+        ? "You are the wrong knight ➤ Flip your coin."
+        : "You are not the wrong knight ➤ Say your actual coin."}
+    `;
+    resultDiv.classList.remove('hidden');
+  }
+
+  function resetUI() {
+    step1.style.display = 'none';
+    step2.style.display = 'none';
+    cdSelectDiv.style.display = 'none';
+    resultDiv.classList.add('hidden');
+    step1Input.value = "";
+    step2Input.value = "";
+    groupSelect.value = "";
+  }
+</script>
+
+</body>
+</html>
