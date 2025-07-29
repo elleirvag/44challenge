@@ -1,1 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>44coin Group Strategy Simulator</title>
+  <style>
+    body { font-family: sans-serif; background: #f6f8fa; }
+    .container { max-width: 650px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #aaa; padding: 32px; }
+    .rules-table { width: 100%; margin-bottom: 18px; }
+    .rules-table th, .rules-table td { padding: 5px 9px; border: 1px solid #ddd; }
+    .static-title { font-size: 1.17em; font-weight: bold; text-align: left; margin-bottom: 8px; }
+    .unhide-btn { margin-bottom: 14px; }
+    .coin-combo { font-size: 2.2em; font-weight: bold; margin: 6px 0 14px 0; letter-spacing: 10px; }
+    .knight-view { font-size: 1.4em; font-weight: bold; margin-bottom: 9px; }
+    .question { font-size: 1.1em; margin-bottom: 6px; }
+    .choices label { display: block; margin-bottom: 4px; }
+    .full-groups { background: #f9f9fc; padding: 12px; margin: 8px 0; border-radius: 6px; }
+    .feedback { font-weight: bold; font-size: 1.12em; margin: 12px 0; }
+    .btn { padding: 6px 18px; margin: 8px 4px 0 0; border: none; border-radius: 4px; background: #3282e6; color: #fff; cursor: pointer; font-size: 1.1em;}
+    .btn:disabled { background: #ccc; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="static-title">[ Static: Group Rules Table ]</div>
+  <table class="rules-table">
+    <tr><th>Group</th><th>A</th><th>B</th><th>Wrong Knight</th></tr>
+    <tr><td>1</td><td>0</td><td>0</td><td>A</td></tr>
+    <tr><td>2</td><td>0</td><td>1</td><td>B</td></tr>
+    <tr><td>3</td><td>1</td><td>0</td><td>C</td></tr>
+    <tr><td>4</td><td>1</td><td>1</td><td>D</td></tr>
+  </table>
+  <div style="margin-bottom: 10px;">Rule: Wrong knight <b>flips</b> their actual coin value when guessing.</div>
 
+  <button id="unhideBtn" class="unhide-btn btn">Unhide 🔍</button>
+  <div id="coinCombo" class="coin-combo" style="display:none;"></div>
+
+  <div id="mainFlow"></div>
+</div>
+
+<script>
+  // === Data setup for a single example (A=1, B=0, C=1, D=0) ===
+  const coinCombo = [1,0,1,0]; // [A,B,C,D]
+  const knightNames = ['A','B','C','D'];
+  let currentKnight = 0; // 0 = A, 1 = B, etc.
+
+  // The 4 groups and rules
+  const groups = [
+    {id:1, A:0, B:0, wrong:'A'},
+    {id:2, A:0, B:1, wrong:'B'},
+    {id:3, A:1, B:0, wrong:'C'},
+    {id:4, A:1, B:1, wrong:'D'}
+  ];
+
+  // Show/hide coin combo
+  document.getElementById('unhideBtn').onclick = function() {
+    document.getElementById('coinCombo').innerText = coinCombo.join('');
+    document.getElementById('coinCombo').style.display = '';
+    this.disabled = true;
+  };
+
+  // Workflow steps for current knight
+  function startKnightFlow(knightIdx) {
+    document.getElementById('mainFlow').innerHTML = '';
+    let mainDiv = document.getElementById('mainFlow');
+    const others = [0,1,2,3].filter(x => x !== knightIdx);
+    // 1. Show knight's view
+    const viewStr = others.map(j => coinCombo[j]).join('');
+    const viewNames = others.map(j => knightNames[j] + '=' + coinCombo[j]).join(', ');
+    const knightViewDiv = document.createElement('div');
+    knightViewDiv.className = 'knight-view';
+    knightViewDiv.innerText = `Knight ${knightNames[knightIdx]} view: ${viewStr} (${viewNames})`;
+    mainDiv.appendChild(knightViewDiv);
+
+    // 2. Which group do you belong to?
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'question';
+    questionDiv.innerText = 'Which group do you belong to?';
+    mainDiv.appendChild(questionDiv);
+
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'choices';
+    // Determine allowed groups by visible A/B for A,B or by seeing A,B for C,D
+    let visibleB = coinCombo[1];
+    let visibleA = coinCombo[0];
+    let groupPossibilities;
+    if (knightIdx === 0) { // A's view, B visible
+      groupPossibilities = groups.filter(g => g.B === visibleB);
+    } else if (knightIdx === 1) { // B's view, A visible
+      groupPossibilities = groups.filter(g => g.A === visibleA);
+    } else { // C or D, see both A and B
+      groupPossibilities = groups.filter(g => g.A === visibleA && g.B === visibleB);
+    }
+    // Multi-choice for A/B, single for C/D
+    groupPossibilities.forEach(g => {
+      let inp = document.createElement('input');
+      inp.type = (knightIdx < 2) ? 'checkbox' : 'radio';
+      inp.name = 'groupChoice';
+      inp.value = g.id;
+      inp.id = 'group_'+g.id;
+      let label = document.createElement('label');
+      label.htmlFor = inp.id;
+      label.innerText = `Group ${g.id} (A=${g.A}, B=${g.B})`;
+      choicesDiv.appendChild(inp);
+      choicesDiv.appendChild(label);
+    });
+    mainDiv.appendChild(choicesDiv);
+
+    // Next button (first step)
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn';
+    nextBtn.innerText = 'Next >';
+    mainDiv.appendChild(nextBtn);
+
+    nextBtn.onclick = function() {
+      let selectedGroups = [];
+      document.getElementsByName('groupChoice').forEach((el) => {
+        if(el.checked) selectedGroups.push(parseInt(el.value));
+      });
+      if(selectedGroups.length === 0) {
+        alert('Select at least one group.');
+        return;
+      }
+      // If more than one, do contradiction check (A/B). Otherwise go to guess.
+      if (selectedGroups.length > 1 && knightIdx < 2) {
+        doContradictionCheck(knightIdx, selectedGroups);
+      } else {
+        doGuessStep(knightIdx, selectedGroups[0]);
+      }
+    };
+  }
+
+  function doContradictionCheck(knightIdx, groupIds) {
+    let mainDiv = document.getElementById('mainFlow');
+    mainDiv.innerHTML = '';
+    // Full coin combos for selected groups
+    const combosDiv = document.createElement('div');
+    combosDiv.className = 'full-groups';
+    combosDiv.innerHTML = '<b>Full coin combos for your selection:</b><br>';
+    groupIds.forEach(id => {
+      const g = groups.find(x => x.id === id);
+      // Set A and B, use actual C and D
+      let combo;
+      if(knightIdx === 0) combo = [g.A, g.B, coinCombo[2], coinCombo[3]];
+      else combo = [coinCombo[0], g.B, coinCombo[2], coinCombo[3]];
+      combosDiv.innerHTML += `Group ${g.id}: ${combo.join('')} (A=${combo[0]}, B=${combo[1]}, C=${combo[2]}, D=${combo[3]})<br>`;
+    });
+    mainDiv.appendChild(combosDiv);
+
+    // Contradiction question
+    const cQDiv = document.createElement('div');
+    cQDiv.className = 'question';
+    cQDiv.innerText = 'Look at the rules table. Which one does NOT contradict?';
+    mainDiv.appendChild(cQDiv);
+
+    // Choices
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'choices';
+    groupIds.forEach(id => {
+      const g = groups.find(x => x.id === id);
+      // Describe rule for this group
+      let ruleText = '';
+      if (g.wrong === 'A') ruleText = 'A flips coin: A=' + (1 - coinCombo[0]);
+      if (g.wrong === 'B') ruleText = 'B flips coin: B=' + (1 - coinCombo[1]);
+      if (g.wrong === 'C') ruleText = 'C flips coin: C=' + (1 - coinCombo[2]);
+      if (g.wrong === 'D') ruleText = 'D flips coin: D=' + (1 - coinCombo[3]);
+      let inp = document.createElement('input');
+      inp.type = 'radio';
+      inp.name = 'contradictChoice';
+      inp.value = g.id;
+      inp.id = 'contradict_'+g.id;
+      let label = document.createElement('label');
+      label.htmlFor = inp.id;
+      label.innerText = `Group ${g.id} (rule: ${ruleText})`;
+      choicesDiv.appendChild(inp);
+      choicesDiv.appendChild(label);
+    });
+    mainDiv.appendChild(choicesDiv);
+
+    // Next button (second step)
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn';
+    nextBtn.innerText = 'Next >';
+    mainDiv.appendChild(nextBtn);
+
+    nextBtn.onclick = function() {
+      let sel = Array.from(document.getElementsByName('contradictChoice')).find(el=>el.checked);
+      if (!sel) {
+        alert('Select a group.');
+        return;
+      }
+      doGuessStep(knightIdx, parseInt(sel.value));
+    };
+  }
+
+  function doGuessStep(knightIdx, groupId) {
+    let mainDiv = document.getElementById('mainFlow');
+    mainDiv.innerHTML = '';
+    // Reminder
+    const remindDiv = document.createElement('div');
+    remindDiv.className = 'question';
+    remindDiv.innerHTML = 'Remember: If you are the wrong knight, <b>flip</b> your coin when guessing.';
+    mainDiv.appendChild(remindDiv);
+
+    // Guess buttons
+    const btn0 = document.createElement('button');
+    btn0.className = 'btn';
+    btn0.innerText = '0';
+    const btn1 = document.createElement('button');
+    btn1.className = 'btn';
+    btn1.innerText = '1';
+    mainDiv.appendChild(btn0);
+    mainDiv.appendChild(btn1);
+
+    // Feedback area
+    const fbDiv = document.createElement('div');
+    fbDiv.className = 'feedback';
+    mainDiv.appendChild(fbDiv);
+
+    // Guess logic
+    btn0.onclick = btn1.onclick = function() {
+      btn0.disabled = true; btn1.disabled = true;
+      // Determine if this knight is the wrong knight for groupId
+      const group = groups.find(g => g.id === groupId);
+      const isWrong = group.wrong === knightNames[knightIdx];
+      const actual = coinCombo[knightIdx];
+      const expected = isWrong ? 1 - actual : actual;
+      const guess = parseInt(this.innerText);
+      fbDiv.innerHTML = (guess === expected) ? '<span style="color:green">Correct!</span>' : '<span style="color:red">Wrong!</span>';
+      // Next Knight button
+      const nextK = document.createElement('button');
+      nextK.className = 'btn';
+      nextK.innerText = (knightIdx < 3) ? 'Next Knight >' : 'Show Summary';
+      mainDiv.appendChild(nextK);
+      nextK.onclick = function() {
+        if (knightIdx < 3) {
+          startKnightFlow(knightIdx+1);
+        } else {
+          showSummary();
+        }
+      };
+    };
+  }
+
+  function showSummary() {
+    let mainDiv = document.getElementById('mainFlow');
+    mainDiv.innerHTML = '<b>All knights have guessed for this combination.</b><br><br><button class="btn" onclick="window.location.reload()">Try Again</button>';
+  }
+
+  // Start with Knight A
+  startKnightFlow(0);
+</script>
+</body>
+</html>
